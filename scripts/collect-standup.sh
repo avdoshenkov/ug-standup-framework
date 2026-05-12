@@ -69,7 +69,11 @@ MODE="local"
 
 # Parse enabled sources (JSON array or fallback default)
 ENABLED_SOURCES_JSON="${STANDUP_ENABLED_SOURCES:-[\"jira\",\"github\",\"git\",\"slack-self\"]}"
-readarray -t ENABLED_SOURCES < <(echo "$ENABLED_SOURCES_JSON" | jq -r '.[]' 2>/dev/null || echo -e "jira\ngithub\ngit\nslack-self")
+# bash 3 compatible (macOS ships bash 3; readarray requires bash 4+)
+ENABLED_SOURCES=()
+while IFS= read -r _src; do
+  [[ -n "$_src" ]] && ENABLED_SOURCES+=("$_src")
+done < <(echo "$ENABLED_SOURCES_JSON" | jq -r '.[]' 2>/dev/null || printf 'jira\ngithub\ngit\nslack-self\n')
 
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT

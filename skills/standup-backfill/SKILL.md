@@ -12,7 +12,12 @@ and save them as local archive files.
 
 ## Step 0 — Load config
 
-Source `${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.sh` to export `STANDUP_*` env vars.
+Read config values by running (use `bash -c` explicitly — config.sh uses bash-specific syntax):
+
+```bash
+bash -c 'source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.sh" && echo "PUBLISH_CHANNEL_ID=$STANDUP_PUBLISH_CHANNEL_ID" && echo "PUBLISH_CHANNEL_NAME=$STANDUP_PUBLISH_CHANNEL_NAME" && echo "WORKSPACE_DOMAIN=$STANDUP_SLACK_WORKSPACE_DOMAIN"'
+```
+
 Required: `STANDUP_PUBLISH_CHANNEL_ID`, `STANDUP_PUBLISH_CHANNEL_NAME`,
 `STANDUP_SLACK_WORKSPACE_DOMAIN`.
 

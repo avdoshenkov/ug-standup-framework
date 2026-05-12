@@ -12,7 +12,12 @@ running `scripts/collect-standup.sh` and without local git repo access.
 
 ## Step 0 — Load config
 
-Source `${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.sh` to export `STANDUP_*` env vars.
+Read config values by running (use `bash -c` explicitly — config.sh uses bash-specific syntax):
+
+```bash
+bash -c 'source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.sh" && echo "PUBLISH_CHANNEL_ID=$STANDUP_PUBLISH_CHANNEL_ID" && echo "EMAIL=$STANDUP_EMAIL" && echo "SLACK_USER_ID=$STANDUP_SLACK_USER_ID" && echo "JIRA_PROJECT=$STANDUP_JIRA_PROJECT" && echo "JIRA_BOARD_ID=$STANDUP_JIRA_BOARD_ID" && echo "ATLASSIAN_DOMAIN=$STANDUP_ATLASSIAN_DOMAIN"'
+```
+
 Required: `STANDUP_PUBLISH_CHANNEL_ID`, `STANDUP_EMAIL`, `STANDUP_SLACK_USER_ID`,
 `STANDUP_JIRA_PROJECT`, `STANDUP_JIRA_BOARD_ID`, `STANDUP_ATLASSIAN_DOMAIN`.
 

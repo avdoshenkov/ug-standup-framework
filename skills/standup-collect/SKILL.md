@@ -11,17 +11,27 @@ Collect today's activity and produce a formatted Slack standup message.
 
 ## Step 0 — Load config
 
-Source `${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.sh` to export `STANDUP_*` env vars.
+Read config values by running (use `bash -c` explicitly — config.sh uses bash-specific syntax):
+
+```bash
+bash -c 'source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.sh" && echo "PUBLISH_CHANNEL_ID=$STANDUP_PUBLISH_CHANNEL_ID" && echo "EMAIL=$STANDUP_EMAIL" && echo "SLACK_USER_ID=$STANDUP_SLACK_USER_ID" && echo "CHANNEL_NAME=$STANDUP_PUBLISH_CHANNEL_NAME"'
+```
+
 Required: `STANDUP_PUBLISH_CHANNEL_ID`, `STANDUP_EMAIL`, `STANDUP_SLACK_USER_ID`.
 
 ---
 
-## Step 1 — Read today's log
+## Step 1 — Ensure today's log exists
 
 1. List all files in `logs/`, sort by name, take the last one.
 2. Check whether its filename starts with today's date in `YYYY-MM-DD` format.
-   - **Yes** → read the file.
-   - **No / directory empty** → tell the user: "Лог за сегодня не найден. Сначала запусти `./scripts/collect-standup.sh`." Then **stop**.
+   - **Yes** → read the file, continue to Step 2.
+   - **No / directory empty** → auto-collect by running:
+     ```bash
+     bash "${CLAUDE_PLUGIN_ROOT}/scripts/collect-standup.sh"
+     ```
+     Wait for it to complete, then read the newly written `logs/YYYY-MM-DD.json`.
+     If the script fails, report the error and stop.
 
 ---
 
