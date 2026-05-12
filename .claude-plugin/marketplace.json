@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "ug-standup-framework",
+  "description": "Evening standup automation for Claude Code — collect activity from Jira, GitHub, Slack and publish to your team channel",
+  "owner": {
+    "name": "Dmitry Avdoshenkov",
+    "url": "https://github.com/avdoshenkov"
+  },
+  "plugins": [
+    {
+      "name": "ug-standup",
+      "description": "Automate evening standup collection and publishing. Collects Jira, GitHub, Slack activity and drafts your standup message.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
