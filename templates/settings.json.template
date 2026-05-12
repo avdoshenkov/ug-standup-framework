@@ -1,9 +1,13 @@
 {
-  "enabledPlugins": [
-    {
-      "name": "ug-standup",
-      "source": "github:avdoshenkov/ug-standup-framework",
-      "version": "0.1.0"
+  "enabledPlugins": {
+    "ug-standup@ug-standup-framework": true
+  },
+  "extraKnownMarketplaces": {
+    "ug-standup-framework": {
+      "source": {
+        "source": "github",
+        "repo": "avdoshenkov/ug-standup-framework"
+      }
     }
-  ]
+  }
 }
