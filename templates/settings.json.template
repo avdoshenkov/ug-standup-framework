@@ -1,0 +1,9 @@
+{
+  "enabledPlugins": [
+    {
+      "name": "ug-standup",
+      "source": "github:avdoshenkov/ug-standup-framework",
+      "version": "0.1.0"
+    }
+  ]
+}

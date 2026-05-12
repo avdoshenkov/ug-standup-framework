@@ -1,0 +1,7 @@
+{
+  "name": "slack-channels",
+  "kind": "mcp",
+  "description": "User's messages and mentions across personal input Slack channels",
+  "requires_env": ["STANDUP_INPUT_SLACK_CHANNELS", "STANDUP_SLACK_USER_ID"],
+  "available_in": ["local", "cloud"]
+}

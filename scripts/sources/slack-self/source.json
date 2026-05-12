@@ -1,0 +1,7 @@
+{
+  "name": "slack-self",
+  "kind": "mcp",
+  "description": "User's own messages in the standup publish channel, for archive lineage",
+  "requires_env": ["STANDUP_PUBLISH_CHANNEL_ID", "STANDUP_SLACK_USER_ID"],
+  "available_in": ["local", "cloud"]
+}

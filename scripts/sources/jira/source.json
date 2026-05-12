@@ -1,0 +1,7 @@
+{
+  "name": "jira",
+  "kind": "shell",
+  "description": "Jira issues, comments, worklogs and sprint data via acli",
+  "requires_env": ["STANDUP_JIRA_BOARD_ID", "STANDUP_JIRA_PROJECT"],
+  "available_in": ["local", "cloud"]
+}

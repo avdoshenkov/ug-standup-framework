@@ -1,0 +1,7 @@
+{
+  "name": "confluence-self-hosted",
+  "kind": "mcp",
+  "description": "Pages on self-hosted Confluence via mcp-atlassian third-party MCP server",
+  "requires_env": ["STANDUP_CONFLUENCE_BASE_URL", "STANDUP_CONFLUENCE_TOKEN"],
+  "available_in": ["local"]
+}

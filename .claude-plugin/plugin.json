@@ -1,0 +1,7 @@
+{
+  "name": "ug-standup",
+  "version": "0.1.0",
+  "description": "Evening standup automation — collect activity from Jira, GitHub, Slack and publish to your team channel",
+  "skills_dir": "skills",
+  "commands_dir": "commands"
+}
