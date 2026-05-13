@@ -98,6 +98,7 @@ cp "${PLUGIN_ROOT}/templates/gitignore.template" .gitignore
 cp "${PLUGIN_ROOT}/templates/env.example" .env.example
 cp "${PLUGIN_ROOT}/templates/settings.json.template" .claude/settings.json
 cp "${PLUGIN_ROOT}/templates/readme.template.md" README.md
+cp "${PLUGIN_ROOT}/templates/style.md.template" config/style.md
 
 # Initial commit
 git add .
