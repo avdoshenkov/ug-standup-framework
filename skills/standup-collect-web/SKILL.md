@@ -38,7 +38,45 @@ github_branch: main           # optional — default: main
 input_slack_channels: []      # optional — default: global search
 ```
 
-If found, extract these values. Proceed to Step 0.5.
+If found and contains all required fields, extract values. Proceed to Step 0.5.
+
+### Source A2 — Minimal project instructions + data-repo config (recommended)
+
+If the project instructions contain **only** a `data_repo` pointer (with no other
+standup config fields), fetch the full config from the data-repo via GitHub MCP:
+
+```
+GET https://api.github.com/repos/{data_repo}/contents/config/local.json
+```
+
+Parse the JSON and map fields:
+
+```
+user.email                → email
+user.slack_user_id        → slack_user_id
+user.jira_account_id      → jira_account_id
+team.publish_channel_id   → publish_channel_id
+team.publish_channel_name → publish_channel_name
+team.jira_project         → jira_project
+team.jira_board_id        → jira_board_id
+team.atlassian_domain     → atlassian_domain
+team.gh_org               → gh_org
+team.gh_repos             → gh_repos
+personal.input_slack_channels → input_slack_channels (default [])
+```
+
+This is the **recommended mode**: project instructions are a one-liner, all config
+lives in the data-repo alongside state and archive. A single `git push` to the
+data-repo propagates config changes to all Claude environments automatically.
+
+Required project instructions format for this mode:
+```yaml
+data_repo: owner/repo
+github_branch: main   # optional, default main
+calendar_id: primary  # optional
+```
+
+If found, extract combined values (project instructions + data-repo config). Proceed to Step 0.5.
 
 ### Source B — Filesystem fallback (only when Bash tool is available)
 
