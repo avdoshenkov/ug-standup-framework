@@ -5,6 +5,18 @@ Claude Code plugin for automated evening standup collection and publishing.
 Collects activity from Jira, GitHub, local git, and Slack, then drafts and
 publishes your team's evening standup message.
 
+Three modes to fit any environment:
+
+| Mode | Works in | Sources | Docs |
+|---|---|---|---|
+| **Local** `/standup` | Claude Code CLI | Jira (acli), GitHub (gh), local git, Slack MCP | below |
+| **Cloud** `/standup-cloud` | Claude Code CLI/cloud | Jira (acli+MCP), GitHub (gh), Slack MCP | below |
+| **Web** (universal) | Claude Web, Mobile, Desktop, Code | Jira MCP, GitHub MCP, Slack MCP, Google Calendar | [web-template/README.md](./web-template/README.md) |
+
+**New to the standup assistant? Not a developer?** → Start with [Web mode setup](./web-template/README.md) — no shell tools required.
+
+---
+
 ## Quick start (existing user)
 
 1. Add to your data repo's `.claude/settings.json`:
@@ -40,6 +52,8 @@ Interactive prompts will collect your config and create a private data repo.
 | `/standup-cloud` | Same but cloud-mode — no local git repos needed |
 | `/standup-archive` | Backfill historical standup messages from Slack |
 | `/standup-init` | Bootstrap a new data repo for a new user |
+
+**Web mode** has no slash command — invoke by natural language: `"собери стендап"`, `"evening standup"`. See [web-template/README.md](./web-template/README.md).
 
 ## Config
 

@@ -13,16 +13,21 @@ keyless activity. The `standup-format` skill formats from these cards.
 
 ## Step 0.5 — Load personal style overlay (optional)
 
-If `${STANDUP_DATA_DIR}/config/style.md` exists, read it. If it defines keyword
-scan lists (meeting words, incident words, delegation triggers, code-review
-markers), use those instead of the generic fallbacks in §3 below. If the file
-is absent, proceed with the generic fallbacks.
+Load style overlay from the **first available source**:
+
+1. **`style_overlay` input parameter** — if the calling skill passed `style_overlay`
+   as explicit content (Web/MCP mode), use that directly.
+2. **Filesystem** — if `${STANDUP_DATA_DIR}/config/style.md` exists, read it.
+3. If neither is available, proceed with generic fallbacks in §3 below.
+
+If it defines keyword scan lists (meeting words, incident words, delegation triggers,
+code-review markers), use those instead of the generic fallbacks in §3 below.
 
 ---
 
 ## Input (from calling skill)
 
-Two data blobs passed in the prompt:
+Three data blobs passed in the prompt:
 
 1. **Log JSON** — the `logs/YYYY-MM-DD.json` object (or virtual log in cloud
    mode). Shape:
@@ -39,6 +44,9 @@ Two data blobs passed in the prompt:
    - Outbound (`from:me`): messages I sent in public channels.
    - Inbound DMs (`to:me`): messages I received in DMs.
    - PR pings: bot messages about review requests.
+3. **Calendar events** (optional, Web mode) — list of Google Calendar events:
+   `[{summary, start, end, status}]`. Used to populate `meetings_from_calendar`
+   in the keyless tail. If absent, omit the field.
 
 ---
 
@@ -69,10 +77,14 @@ per Jira key, then the keyless tail.
 ## no-key
 - code_reviews: <count of PRs reviewed (not authored), list of themes if clear>
 - meetings: <list of syncs/kick-offs/1-1s found in outbound Slack, or "none">
+- meetings_from_calendar: <list of accepted calendar events, or omit if no calendar data>
 - incidents: <any infra/deploy failures mentioned, or "none">
 - delegated_tasks: <list of tasks delegated to colleagues if applicable, or "none">
 - escalations: <user-initiated investigation threads with ≥3 replies, or "none">
 ```
+
+`meetings_from_calendar` takes priority over `meetings` when both are present — calendar
+events are more reliable than Slack keyword scanning. If both have data, merge unique entries.
 
 ---
 

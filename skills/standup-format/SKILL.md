@@ -11,10 +11,16 @@ Composes the evening Slack standup message from the user's verbal or text input.
 
 ## Step 0.5 — Load personal style overlay (optional)
 
-If `${STANDUP_DATA_DIR}/config/style.md` exists, read it. Treat its contents as
-additional, user-authored style guidance that **overrides or augments** the
-universal rules below. If the file is absent, proceed with the universal rules
-only — output will still be valid Slack mrkdwn but phrased generically.
+Load style overlay from the **first available source**:
+
+1. **`style_overlay` input parameter** — if the calling skill passed `style_overlay`
+   as explicit content (Web/MCP mode), use that directly.
+2. **Filesystem** — if `${STANDUP_DATA_DIR}/config/style.md` exists, read it.
+3. If neither is available, proceed with universal rules only — output will still be
+   valid Slack mrkdwn but phrased generically.
+
+Treat the loaded content as user-authored style guidance that **overrides or augments**
+the universal rules below.
 
 ---
 
@@ -74,6 +80,10 @@ Other rules:
 ---
 
 ## Input data
+
+**Optional parameter: `style_overlay`** — raw markdown content of the style file,
+passed by the calling skill (used in Web/MCP mode instead of filesystem read).
+If provided, Step 0.5 uses this content directly.
 
 **A. Activity cards (preferred)** — when called from `standup-collect` via
 `standup-aggregate`. Format:
