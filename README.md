@@ -1,23 +1,35 @@
 # ug-standup
 
-Claude Code plugin for automated evening standup collection and publishing.
+Claude plugin for automated evening standup collection and publishing.
 
-Collects activity from Jira, GitHub, local git, and Slack, then drafts and
-publishes your team's evening standup message.
+Collects activity from Jira, Slack, GitHub (optional), Google Calendar (optional),
+and Confluence (optional), then drafts and publishes your team's evening standup message.
 
-Three modes to fit any environment:
-
-| Mode | Works in | Sources | Docs |
-|---|---|---|---|
-| **Local** `/standup` | Claude Code CLI | Jira (acli), GitHub (gh), local git, Slack MCP | below |
-| **Cloud** `/standup-cloud` | Claude Code CLI/cloud | Jira (acli+MCP), GitHub (gh), Slack MCP | below |
-| **Web** (universal) | Claude Web, Mobile, Desktop, Code | Jira MCP, GitHub MCP, Slack MCP, Google Calendar | [web-template/README.md](./web-template/README.md) |
-
-**New to the standup assistant? Not a developer?** → Start with [Web mode setup](./web-template/README.md) — no shell tools required.
+**One skill, any surface** — works in Claude Web, Mobile, Desktop, Claude Code cloud,
+and Claude Code CLI. No shell tools required. All data via MCP connectors.
 
 ---
 
-## Quick start (existing user)
+## Quick start
+
+### Claude Web / Mobile / Desktop (Claude Projects)
+
+1. Create a Claude Project.
+2. Connect MCP integrations (Project settings → Integrations):
+   - **Slack** — required
+   - **Atlassian Rovo** — required (Jira sprint + activity)
+   - **Google Calendar** — optional (meeting context)
+3. Add project instructions — paste the contents of
+   [`web-template/project-instructions.template.md`](./web-template/project-instructions.template.md).
+4. Upload a filled config file — copy
+   [`web-template/config.template.md`](./web-template/config.template.md),
+   fill in your values, upload as a knowledge file named `config.md`.
+5. Optionally upload a style file — copy
+   [`web-template/style.template.md`](./web-template/style.template.md),
+   fill in your phrasing preferences, upload as `style.md`.
+6. Type `"собери стендап"` or `"evening standup"`.
+
+### Claude Code (CLI or Desktop)
 
 1. Add to your data repo's `.claude/settings.json`:
    ```json
@@ -34,7 +46,7 @@ Three modes to fit any environment:
 2. Ensure `config/local.json` is populated (see [Config](#config)).
 3. Open your data repo in Claude Code. Run `/standup`.
 
-## Onboarding (new user)
+### New user (Claude Code)
 
 From any Claude Code workspace with this plugin installed:
 
@@ -42,23 +54,27 @@ From any Claude Code workspace with this plugin installed:
 /standup-init
 ```
 
-Interactive prompts will collect your config and create a private data repo.
+Interactive prompts collect your config and create a private data repo.
+
+---
 
 ## Commands
 
 | Command | Description |
 |---|---|
-| `/standup` | Collect activity + draft standup (local mode, includes git commits) |
-| `/standup-cloud` | Same but cloud-mode — no local git repos needed |
-| `/standup-archive` | Backfill historical standup messages from Slack |
-| `/standup-init` | Bootstrap a new data repo for a new user |
+| `/standup` | Collect activity + draft standup (all Claude surfaces) |
+| `/standup-archive` | Pull standup messages from Slack into `archive/` (run weekly) |
+| `/standup-init` | Bootstrap a new data repo (Claude Code only) |
 
-**Web mode** has no slash command — invoke by natural language: `"собери стендап"`, `"evening standup"`. See [web-template/README.md](./web-template/README.md).
+Natural language triggers (Web / Mobile / Desktop): `"собери стендап"`,
+`"evening standup"`, `"подготовь вечернее письмо"`, `"what did I do today"`.
+
+---
 
 ## Config
 
-Config lives in your private data repo at `config/local.json` (committed).
-Secrets and local paths go in `.env` (gitignored).
+For Claude Code, config lives in your private data repo at `config/local.json`.
+For Web/Mobile/Desktop, config is a knowledge file (`config.md`) in your Claude Project.
 
 ### config/local.json
 
@@ -77,46 +93,104 @@ Secrets and local paths go in `.env` (gitignored).
     "jira_board_id": 123,
     "atlassian_domain": "yourcompany.atlassian.net",
     "gh_org": "your-org",
-    "gh_repos": ["your-org/frontend", "your-org/backend"],
-    "confluence_base_url": ""
+    "gh_repos": ["your-org/frontend", "your-org/backend"]
   },
   "personal": {
     "input_slack_channels": []
   },
-  "enabled_sources": ["jira", "github", "git", "slack-self"]
+  "confluence": {
+    "enabled": false
+  }
 }
 ```
 
-### .env (gitignored, local-only)
-
-```bash
-# Only needed if 'git' source enabled
-STANDUP_LOCAL_REPOS=/path/to/repo1:/path/to/repo2
-
-# Only needed if 'confluence-self-hosted' source enabled
-STANDUP_CONFLUENCE_TOKEN=
-```
+---
 
 ## Sources
 
-| Name | Kind | Available | Description |
-|---|---|---|---|
-| `jira` | shell | local + cloud | Jira issues/comments via `acli` |
-| `github` | shell | local + cloud | Commits and PRs via `gh` |
-| `git` | shell | local only | Local git commits across configured repos |
-| `slack-self` | mcp | local + cloud | Your messages in the standup channel |
-| `slack-channels` | mcp | local + cloud | **stub** — activity in personal channels |
-| `confluence-cloud` | mcp | local + cloud | **stub** — cloud Confluence pages |
-| `confluence-self-hosted` | mcp | local only | **stub** — self-hosted Confluence |
+| Source | Available | Description |
+|---|---|---|
+| Jira | all surfaces | Sprint + activity via Atlassian MCP |
+| Slack | all surfaces | Your messages + DMs via Slack MCP |
+| Google Calendar | all surfaces | Meetings via Google Calendar MCP (optional) |
+| GitHub | Claude Code only | PRs + commits via `gh` CLI or GitHub MCP (optional) |
+| Confluence | Claude Code + Desktop | Pages/comments via Atlassian/Rovo or Confluence MCP (optional, opt-in) |
 
-### Custom sources
+> **Why no GitHub in Web/Mobile?** The claude.ai project connector list has no GitHub
+> tool for autonomous chat use (only manual file-attach and read-only repo sync). GitHub
+> activity is automatically included when running from Claude Code where `gh` or a
+> GitHub MCP is reachable.
 
-Add `sources/<name>/` to your data repo with `source.json` + `run.md` (+ `lib/fetch.sh` for shell kind).
-Add the source name to `enabled_sources` in `config/local.json`. No framework change required.
+---
+
+## Archive
+
+The daily standup skill writes nothing to disk. To maintain a searchable offline
+archive, run `/standup-archive` periodically (weekly recommended):
+
+```
+/standup-archive
+```
+
+This pulls your standup messages from Slack into `archive/YYYY-MM-DD.md`. Existing
+files are never overwritten — safe to re-run.
+
+---
+
+## Automate via Claude Code Routines
+
+You can automate the daily standup draft using [Claude Code Routines](https://claude.ai/code)
+(Settings → Routines → New routine).
+
+### Daily compose routine
+
+| Setting | Value |
+|---|---|
+| Trigger | Schedule — weekdays at your EOD time (e.g. `0 18 * * 1-5`) |
+| **Repo / workspace** | Your **data repo** (e.g. `personal-muse-assistant`) — carries plugin enable + `config/local.json` |
+| Connectors | Atlassian Rovo, Slack, Google Calendar |
+| Instructions | `собери стендап` |
+
+The skill is loaded from the `ug-standup` plugin enabled in the data repo's
+`.claude/settings.json`; config is read from `config/local.json` in the same repo.
+Do **not** paste the skill as chat instructions — it ships via the plugin.
+
+**GitHub activity (optional):** add a GitHub connector to the routine. The skill reads
+`team.gh_repos` from `config/local.json` and queries those repos for PRs and commits.
+Without a GitHub connector the step is skipped and the letter is built from
+Jira + Slack + Calendar.
+
+You do **not** need to attach your code repos as the workspace — the data repo is the
+only workspace. Repo names for GitHub queries live in `config/local.json`.
+
+> **Important:** routines run unattended and connectors grant write access without
+> per-action confirmation. Do **not** auto-publish to the team channel — the skill
+> will send a self-DM preview and wait. Review and publish manually.
+> Only set auto-publish if you are confident in fully hands-off operation.
+
+### Weekly archive routine
+
+| Setting | Value |
+|---|---|
+| Trigger | Schedule — weekly (e.g. Sundays) |
+| Repo / workspace | Your data repo |
+| Connectors | Slack |
+| Instructions | `выгрузи стендапы из Slack` |
+
+---
+
+## Confluence (optional)
+
+To include Confluence activity in the standup:
+
+1. Set `confluence.enabled: true` in your config.
+2. Connect the right tool:
+   - **Cloud Confluence** — already available via the Atlassian/Rovo connector.
+   - **Self-hosted Confluence** — requires the
+     [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) server.
 
 ### Self-hosted Confluence MCP setup
 
-Requires the [mcp-atlassian](https://github.com/sooperset/mcp-atlassian) server.
 Prerequisites: Python 3.10–3.13 + `uv` (`pip install uv`).
 
 Add to `~/.claude.json` or `.claude/mcp-servers.json`:
@@ -139,12 +213,14 @@ Add to `~/.claude.json` or `.claude/mcp-servers.json`:
 }
 ```
 
+---
+
 ## Prerequisites
 
 - Claude Code with Slack MCP connected
-- `acli` (Atlassian CLI) — for local Jira collection
-- `gh` (GitHub CLI) — for GitHub collection
-- `jq` — for JSON processing
+- Atlassian/Rovo connector (or mcp-atlassian for self-hosted)
+- `gh` (GitHub CLI) — optional, for GitHub activity in Claude Code CLI
+- `jq` — required only for `/standup-init`
 
 ## License
 

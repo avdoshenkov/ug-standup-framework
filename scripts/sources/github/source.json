@@ -1,7 +1,0 @@
-{
-  "name": "github",
-  "kind": "shell",
-  "description": "GitHub commits and PR activity via gh CLI",
-  "requires_env": ["STANDUP_GH_ORG"],
-  "available_in": ["local", "cloud"]
-}

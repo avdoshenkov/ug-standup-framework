@@ -1,7 +1,0 @@
-{
-  "name": "confluence-cloud",
-  "kind": "mcp",
-  "description": "Pages created or edited in Atlassian Cloud Confluence via MCP",
-  "requires_env": [],
-  "available_in": ["local", "cloud"]
-}
