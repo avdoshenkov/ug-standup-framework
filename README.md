@@ -12,49 +12,22 @@ and Claude Code CLI. No shell tools required. All data via MCP connectors.
 
 ## Quick start
 
-### Claude Web / Mobile / Desktop (Claude Projects)
+Full step-by-step onboarding: **[ONBOARDING.md](./ONBOARDING.md)**
 
-1. Create a Claude Project.
-2. Connect MCP integrations (Project settings → Integrations):
-   - **Slack** — required
-   - **Atlassian Rovo** — required (Jira sprint + activity)
-   - **Google Calendar** — optional (meeting context)
-3. Add project instructions — paste the contents of
-   [`web-template/project-instructions.template.md`](./web-template/project-instructions.template.md).
-4. Upload a filled config file — copy
-   [`web-template/config.template.md`](./web-template/config.template.md),
-   fill in your values, upload as a knowledge file named `config.md`.
-5. Optionally upload a style file — copy
-   [`web-template/style.template.md`](./web-template/style.template.md),
-   fill in your phrasing preferences, upload as `style.md`.
-6. Type `"собери стендап"` or `"evening standup"`.
+**Claude.ai (Web / Mobile / Desktop):** enable code execution → upload `web-skill/standup-web.zip` via Customize → Skills → create project with Slack + Atlassian → paste config YAML into project instructions → `собери стендап`.
 
-### Claude Code (CLI or Desktop)
+**Claude Code (CLI / Desktop):** add plugin via marketplace (no clone) → run `/standup-init` to scaffold data repo → `/standup`.
 
-1. Add to your data repo's `.claude/settings.json`:
-   ```json
-   {
-     "enabledPlugins": [
-       {
-         "name": "ug-standup",
-         "source": "github:avdoshenkov/ug-standup-framework",
-         "version": "0.1.0"
-       }
-     ]
-   }
-   ```
-2. Ensure `config/local.json` is populated (see [Config](#config)).
-3. Open your data repo in Claude Code. Run `/standup`.
-
-### New user (Claude Code)
-
-From any Claude Code workspace with this plugin installed:
-
+```json
+{
+  "enabledPlugins": { "ug-standup@ug-standup-framework": true },
+  "extraKnownMarketplaces": {
+    "ug-standup-framework": {
+      "source": { "source": "github", "repo": "avdoshenkov/ug-standup-framework" }
+    }
+  }
+}
 ```
-/standup-init
-```
-
-Interactive prompts collect your config and create a private data repo.
 
 ---
 
@@ -74,7 +47,8 @@ Natural language triggers (Web / Mobile / Desktop): `"собери стенда�
 ## Config
 
 For Claude Code, config lives in your private data repo at `config/local.json`.
-For Web/Mobile/Desktop, config is a knowledge file (`config.md`) in your Claude Project.
+For Web/Mobile/Desktop, config is a YAML block pasted into the Claude Project's Custom instructions
+(template: [`web-skill/config.template.md`](./web-skill/config.template.md)).
 
 ### config/local.json
 

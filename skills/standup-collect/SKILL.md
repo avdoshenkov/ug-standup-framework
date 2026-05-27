@@ -68,7 +68,7 @@ If found, proceed to Step 1.
 
 If neither source is found, stop and tell the user:
 
-> ⚠️ Конфиг не найден. Добавь YAML-блок с настройками в project instructions или knowledge file проекта. Шаблон: `web-template/config.template.md` в репозитории плагина.
+> ⚠️ Конфиг не найден. Добавь YAML-блок с настройками в project instructions или knowledge file проекта. Шаблон: `web-skill/config.template.md` в репозитории плагина.
 
 Do NOT proceed without at least: `slack_user_id`, `publish_channel_id`, `jira_project`, `atlassian_domain`.
 
