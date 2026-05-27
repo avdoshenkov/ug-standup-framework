@@ -7,57 +7,27 @@ and Claude Code CLI — without any shell tools.
 
 ## Claude Web / Mobile / Desktop (Claude Projects)
 
-### Step 1 — Create a Claude project
+The recommended approach uses the `standup-web` Agent Skill — a self-contained
+skill uploaded to your claude.ai account once. It replaces the manual
+project-instructions approach from v0.1.
 
-Open [claude.ai](https://claude.ai) → Projects → New project.
+**Full setup guide:** [`../web-skill/README.md`](../web-skill/README.md)
 
-### Step 2 — Connect MCP integrations
+**Quick summary:**
 
-In project settings, enable connectors:
+1. `Settings → Features` → enable **Code execution** (once per account).
+2. `Customize → Skills → Upload a skill` → upload `../web-skill/standup-web.zip`.
+3. Create a Claude project with **Slack + Atlassian** connectors (Calendar optional).
+4. Paste the YAML from `project-instructions.template.md` into project **Custom instructions**.
+5. Type `собери стендап`.
 
-| Integration | Required | Used for |
-|---|---|---|
-| Slack | ✅ Yes | preview/publish, activity search |
-| Atlassian Rovo | ✅ Yes | Jira sprint and activity |
-| Google Calendar | Optional | meeting context |
+Minimum YAML fields: `slack_user_id`, `publish_channel_id`, `publish_channel_name`,
+`jira_project`, `jira_board_id`, `atlassian_domain`.
 
-> **Note:** GitHub is not available as an autonomous connector in Web/Mobile/Desktop
-> project chat. GitHub activity (PRs, commits) is included automatically when running
-> from Claude Code where `gh` or a GitHub MCP is reachable.
+> **GitHub:** not available as a web connector. Included automatically in Claude Code.
 
-### Step 3 — Add project instructions
-
-Copy the contents of [`project-instructions.template.md`](./project-instructions.template.md)
-into the project's **Custom instructions** field.
-
-### Step 4 — Add config knowledge file
-
-Copy [`config.template.md`](./config.template.md), fill in your values, and upload
-to the project as a knowledge file (name it `config.md`).
-
-Minimum required fields:
-- `slack_user_id`, `publish_channel_id`, `publish_channel_name`
-- `jira_project`, `jira_board_id`, `atlassian_domain`
-
-### Step 5 — Add style knowledge file (optional)
-
-Copy [`style.template.md`](./style.template.md), fill in your language and style
-preferences, and upload as a knowledge file (name it `style.md`).
-If skipped, the assistant uses generic defaults.
-
-### Step 6 — Collect your standup
-
-In the project chat, type any of:
-- `собери стендап`
-- `evening standup`
-- `подготовь вечернее письмо`
-
-The assistant will fetch your Jira, Calendar, and Slack activity,
-draft the message, send you a self-DM preview, and ask whether to publish.
-
-> **Archive in Web mode:** the daily skill writes nothing to disk. Your published
-> standups live in Slack. To build a local archive, set up Claude Code with the
-> plugin and run `/standup-archive` periodically.
+> **Archive:** the skill writes nothing to disk. Published standups live in Slack.
+> Run `/standup-archive` from Claude Code to build a local archive.
 
 ---
 
@@ -65,13 +35,13 @@ draft the message, send you a self-DM preview, and ask whether to publish.
 
 The `standup-collect` skill is installed with the plugin and works in Code environments.
 
-**Invoke via natural language** (same triggers as above) or run `/standup`.
+**Invoke via natural language** (same triggers) or run `/standup`.
 
 **Config resolution in Code:**
-1. If a Claude Project is associated and has the config knowledge file → uses it.
+1. If a Claude Project has the config knowledge file → uses it.
 2. Otherwise reads `config/local.json` from the workspace via the Read tool.
 3. If neither → prompts the user to add a config.
 
 **GitHub activity in Code:**
 Included automatically when `gh` CLI is on the path, a GitHub MCP is configured,
-or repos are cloned in a cloud routine. Not available in plain Web/Mobile/Desktop.
+or repos are cloned in a cloud routine.

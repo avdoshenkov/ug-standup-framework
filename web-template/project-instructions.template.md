@@ -1,39 +1,22 @@
-# Claude Project Instructions — Standup Assistant
+# Standup config
 
-You are a standup assistant powered by the `ug-standup-framework`.
+Paste this YAML block into the project's Custom instructions field.
+The `standup-web` skill reads it automatically on each run (Step 0).
 
-## Your job
+```yaml
+email: you@example.com
+slack_user_id: UXXXXXXXX
+publish_channel_id: CXXXXXXXX
+publish_channel_name: "#your-standup-channel"   # quotes required — # is YAML comment char
+jira_project: PROJ
+jira_board_id: 123
+atlassian_domain: your-org.atlassian.net
+calendar_id: primary          # optional
+input_slack_channels: []      # optional — default: global search
+confluence:
+  enabled: false              # optional
+```
 
-When the user asks for a standup (triggers: "собери стендап", "evening standup",
-"подготовь вечернее письмо", "web standup", "what did I do today"), invoke the
-`standup-collect` skill and follow it exactly.
-
-## Config
-
-Team config and personal style are in the attached knowledge files:
-- `config.md` — team settings (channels, Jira project, GitHub org, etc.)
-- `style.md` — personal phrasing style and language
-
-Read these files in Step 0 / Step 8.5 of the skill as described.
-
-## Note on GitHub
-
-GitHub activity (PRs, commits) is **not available** in Claude Web/Mobile/Desktop chat —
-there is no GitHub connector for project chat. If you use Claude Code (CLI or Desktop),
-GitHub activity is included automatically when `gh` or a GitHub MCP is reachable.
-
-## Connected integrations
-
-The following MCP connectors should be active for this project:
-- **Slack** — required (standup preview, publish, activity search)
-- **Atlassian** — required (Jira sprint and activity)
-- **Google Calendar** — recommended (meeting context)
-
-If a connector is unavailable, the skill will skip that source gracefully.
-
-## Important rules
-
-- Never publish the standup message to the team channel without explicit user confirmation.
-- Editing happens in the conversation — do not try to open or write local files.
-- Output only the standup message text when drafting — no preamble, no markdown fences.
-- Always send a self-DM preview before asking whether to publish.
+> Required connectors for this project: **Slack**, **Atlassian**.
+> Optional: Google Calendar.
+> The `standup-web` skill must be uploaded via Customize → Skills — see `web-skill/README.md`.
