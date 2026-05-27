@@ -16,7 +16,10 @@ jira_project: PROJ                     # Jira project key (e.g. MYAPP)
 jira_board_id: 42                      # Jira board ID (from board URL)
 atlassian_domain: company.atlassian.net
 
-# --- GitHub (recommended) ---
+# --- GitHub (optional, Claude Code and routines only) ---
+# GitHub activity (PRs, commits, review requests) is collected only when a GitHub
+# tool is reachable — gh CLI (local Claude Code) or a GitHub MCP / connector (routines).
+# Not available in plain Web/Mobile/Desktop chat.
 
 gh_org: my-org
 gh_repos:
@@ -27,13 +30,6 @@ gh_repos:
 
 calendar_id: primary    # or the specific calendar ID from Google Calendar settings
 
-# --- Optional: state + archive via GitHub ---
-# If set, state.json and archive/*.md are stored in this private repo.
-# Great for cross-device sync (Web ↔ Code CLI ↔ Mobile).
-
-data_repo: owner/my-standup-log    # owner/repo on GitHub
-github_branch: main
-
 # --- Optional: Slack channel filter ---
 # If empty (default), global search is used (from:me / to:me).
 # Set to restrict search to specific channels for better signal/noise.
@@ -42,4 +38,11 @@ input_slack_channels: []
 # input_slack_channels:
 #   - standup-backend
 #   - dev-team
+
+# --- Optional: Confluence ---
+# Fetch pages and comments you created/edited. Requires Atlassian/Rovo connector
+# (Cloud Confluence) or a separately configured Confluence MCP (self-hosted).
+
+confluence:
+  enabled: false
 ```

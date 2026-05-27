@@ -1,7 +1,0 @@
-{
-  "name": "git",
-  "kind": "shell",
-  "description": "Local git repository commits and uncommitted changes",
-  "requires_env": ["STANDUP_LOCAL_REPOS"],
-  "available_in": ["local"]
-}

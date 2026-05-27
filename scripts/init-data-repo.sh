@@ -61,7 +61,7 @@ gh repo create "${REPO_NAME}" --private --clone --gitignore Node -y 2>/dev/null 
 mv "$REPO_NAME" "$LOCAL_DIR" 2>/dev/null || true
 cd "$LOCAL_DIR"
 
-mkdir -p config logs drafts archive .claude
+mkdir -p config archive .claude
 
 # Build gh_repos JSON array
 REPOS_JSON="$(echo "$GH_REPOS" | jq -Rc 'split(",") | map(ltrimstr(" ") | rtrimstr(" ")) | map(select(. != ""))')"
@@ -88,14 +88,14 @@ cat > config/local.json <<EOF
   "personal": {
     "input_slack_channels": []
   },
-  "enabled_sources": ["jira", "github", "git", "slack-self"]
+  "confluence": {
+    "enabled": false
+  }
 }
 EOF
 
 # Copy template files
-cp "${PLUGIN_ROOT}/templates/state.json.template" config/state.json
 cp "${PLUGIN_ROOT}/templates/gitignore.template" .gitignore
-cp "${PLUGIN_ROOT}/templates/env.example" .env.example
 cp "${PLUGIN_ROOT}/templates/settings.json.template" .claude/settings.json
 cp "${PLUGIN_ROOT}/templates/readme.template.md" README.md
 cp "${PLUGIN_ROOT}/templates/style.md.template" config/style.md

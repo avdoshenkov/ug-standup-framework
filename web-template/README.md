@@ -1,6 +1,7 @@
-# Web Mode Setup
+# Web / Desktop / Mobile Setup
 
-How to use the standup assistant in Claude Web, Mobile, Desktop chat, Claude Code cloud, and Claude Code CLI — without any shell tools.
+How to use the standup assistant in Claude Web, Mobile, Desktop, Claude Code cloud,
+and Claude Code CLI — without any shell tools.
 
 ---
 
@@ -17,9 +18,12 @@ In project settings, enable connectors:
 | Integration | Required | Used for |
 |---|---|---|
 | Slack | ✅ Yes | preview/publish, activity search |
-| Atlassian | ✅ Yes | Jira sprint and activity |
-| GitHub | Recommended | PRs, commits, state + archive storage |
-| Google Calendar | Recommended | meeting context |
+| Atlassian Rovo | ✅ Yes | Jira sprint and activity |
+| Google Calendar | Optional | meeting context |
+
+> **Note:** GitHub is not available as an autonomous connector in Web/Mobile/Desktop
+> project chat. GitHub activity (PRs, commits) is included automatically when running
+> from Claude Code where `gh` or a GitHub MCP is reachable.
 
 ### Step 3 — Add project instructions
 
@@ -48,47 +52,26 @@ In the project chat, type any of:
 - `evening standup`
 - `подготовь вечернее письмо`
 
-The assistant will fetch your Jira, GitHub, Calendar, and Slack activity,
+The assistant will fetch your Jira, Calendar, and Slack activity,
 draft the message, send you a self-DM preview, and ask whether to publish.
 
----
-
-## Optional: cross-device sync via GitHub data-repo
-
-If you use standup both from the browser and from Claude Code CLI, add a
-`data_repo: owner/repo` line to your config. The assistant will read/write
-`config/state.json` and `archive/*.md` in that private GitHub repo via GitHub MCP,
-so sprint cache and last standup context are always in sync.
+> **Archive in Web mode:** the daily skill writes nothing to disk. Your published
+> standups live in Slack. To build a local archive, set up Claude Code with the
+> plugin and run `/standup-archive` periodically.
 
 ---
 
-## Claude Code cloud and CLI
+## Claude Code (cloud or CLI)
 
-The `standup-collect-web` skill is installed with the plugin and works in Code environments too.
+The `standup-collect` skill is installed with the plugin and works in Code environments.
 
-**Invoke via natural language** (same triggers as above) — the skill activates from the
-plugin's skill registry.
+**Invoke via natural language** (same triggers as above) or run `/standup`.
 
 **Config resolution in Code:**
 1. If a Claude Project is associated and has the config knowledge file → uses it.
-2. Otherwise, if a data-repo is open as the workspace → reads `config/local.json` from filesystem.
+2. Otherwise reads `config/local.json` from the workspace via the Read tool.
 3. If neither → prompts the user to add a config.
 
-**State and archive in Code:**
-- If `data_repo` is set → writes via GitHub MCP (same as Web).
-- If data-repo is open as workspace → writes to filesystem and git-commits locally.
-
----
-
-## Mode comparison
-
-| Feature | Local `/standup` | Cloud `/standup-cloud` | Web mode |
-|---|---|---|---|
-| Works in Claude Web/Mobile | ❌ | ❌ | ✅ |
-| Local git commits | ✅ | ❌ | ❌ |
-| Jira | shell (`acli`) | Atlassian MCP | Atlassian MCP |
-| GitHub | shell (`gh`) | shell (`gh`) | GitHub MCP |
-| Google Calendar | ❌ | ❌ | ✅ (optional) |
-| Requires shell tools | ✅ | ✅ | ❌ |
-| State persistence | Local fs | Local fs | GitHub MCP or local fs |
-| Archive | Local fs | Local fs | GitHub MCP or local fs |
+**GitHub activity in Code:**
+Included automatically when `gh` CLI is on the path, a GitHub MCP is configured,
+or repos are cloned in a cloud routine. Not available in plain Web/Mobile/Desktop.

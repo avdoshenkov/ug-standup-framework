@@ -1,154 +1,342 @@
 ---
 name: standup-collect
-description: Collect and prepare the evening standup Slack message. Triggered by /standup, "собери стендап", "подготовь вечернее письмо", "что я делал сегодня".
+description: Universal MCP-only evening standup collection — works in Claude Web, Mobile, Desktop, Claude Code cloud, and Claude Code CLI. No bash required. All data via Slack MCP, Atlassian MCP, GitHub MCP (optional), Google Calendar MCP (optional), and Confluence (optional). Triggered by "собери стендап", "evening standup", "подготовь вечернее письмо", "what did I do today".
 ---
 
-# Standup Collect
+# Standup Collect — Universal
 
-Collect today's activity and produce a formatted Slack standup message.
+Collect today's activity and produce a formatted Slack standup message. Works in any
+Claude environment: Web, Mobile, Desktop, Claude Code cloud, Claude Code CLI.
+No bash required. No local filesystem required. All data via MCP connectors.
+
+Nothing is written to disk. No state file maintained. Each run is self-contained.
 
 ---
 
 ## Step 0 — Load config
 
-Read config values by running (use `bash -c` explicitly — config.sh uses bash-specific syntax):
+Load team config from the **first available source**, in priority order:
 
-```bash
-bash -c 'source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.sh" && echo "PUBLISH_CHANNEL_ID=$STANDUP_PUBLISH_CHANNEL_ID" && echo "EMAIL=$STANDUP_EMAIL" && echo "SLACK_USER_ID=$STANDUP_SLACK_USER_ID" && echo "CHANNEL_NAME=$STANDUP_PUBLISH_CHANNEL_NAME"'
+### Source A — Project knowledge file or project instructions (primary)
+
+Scan the conversation context (system message, project instructions, knowledge files)
+for a YAML block with standup config. Example shape:
+
+```yaml
+email: you@example.com
+slack_user_id: UXXXXXXXX
+publish_channel_id: CXXXXXXXX
+publish_channel_name: standup-team
+jira_project: PROJ
+jira_board_id: 123
+atlassian_domain: company.atlassian.net
+gh_org: my-org
+gh_repos:
+  - my-org/frontend
+  - my-org/backend
+calendar_id: primary          # optional — Google Calendar ID
+input_slack_channels: []      # optional — default: global search
+confluence:
+  enabled: false              # optional — set true to include Confluence activity
 ```
 
-Required: `STANDUP_PUBLISH_CHANNEL_ID`, `STANDUP_EMAIL`, `STANDUP_SLACK_USER_ID`.
+If found and contains all required fields, extract values. Proceed to Step 1.
+
+### Source B — Filesystem (Claude Code only)
+
+If Source A is not found AND the Read tool is available, try reading
+`config/local.json` from the current workspace. Map fields:
+
+```
+user.email                → email
+user.slack_user_id        → slack_user_id
+user.jira_account_id      → jira_account_id
+team.publish_channel_id   → publish_channel_id
+team.publish_channel_name → publish_channel_name
+team.jira_project         → jira_project
+team.jira_board_id        → jira_board_id
+team.atlassian_domain     → atlassian_domain
+team.gh_org               → gh_org
+team.gh_repos             → gh_repos
+personal.input_slack_channels → input_slack_channels (default [])
+confluence                → confluence (default {enabled: false})
+```
+
+If found, proceed to Step 1.
+
+### Source C — Fail gracefully
+
+If neither source is found, stop and tell the user:
+
+> ⚠️ Конфиг не найден. Добавь YAML-блок с настройками в project instructions или knowledge file проекта. Шаблон: `web-template/config.template.md` в репозитории плагина.
+
+Do NOT proceed without at least: `slack_user_id`, `publish_channel_id`, `jira_project`, `atlassian_domain`.
 
 ---
 
-## Step 1 — Ensure today's log exists
+## Step 1 — Resolve `since`
 
-1. List all files in `logs/`, sort by name, take the last one.
-2. Check whether its filename starts with today's date in `YYYY-MM-DD` format.
-   - **Yes** → read the file, continue to Step 2.
-   - **No / directory empty** → auto-collect by running:
-     ```bash
-     bash "${CLAUDE_PLUGIN_ROOT}/scripts/collect-standup.sh"
+Compute the window start from the last posted standup in the channel:
+
+1. Run MCP `slack_search_public_and_private` with query
+   `from:me in:{publish_channel_name}`, scoped to last 7 days.
+2. If a result is found, take the most recent post's timestamp as `SINCE`.
+3. If no result (first run, or channel name unknown):
+   - Today is Monday → `SINCE` = last Friday at 00:00 local time.
+   - Otherwise → `SINCE` = yesterday at 00:00 local time.
+
+Store:
+- `SINCE` — full ISO-8601 with timezone (e.g., `2026-04-28T00:00:00+03:00`)
+- `SINCE_DATE` — date only (`YYYY-MM-DD`, for JQL filters)
+- `LAST_STANDUP_TEXT` — full text of the most recent standup (if found), for use in Step 7.
+
+---
+
+## Step 2 — Resolve current sprint
+
+Call `searchJiraIssuesUsingJql` with JQL:
+`assignee = currentUser() AND sprint in openSprints()`
+
+Inspect response to find active sprint id and name. Build sprint task list:
+`tasks: [{key, summary, status, url}, ...]`
+
+If the MCP call fails or returns no open sprint, set sprint name to `""` and task
+list to `[]`. Do not stop — continue with empty sprint context.
+
+---
+
+## Step 3 — Fetch Jira activity
+
+1. Call MCP `searchJiraIssuesUsingJql` with JQL:
+   `assignee = currentUser() AND updated >= '${SINCE_DATE}'`
+2. For each returned issue key:
+   - Call MCP `getJiraIssue` to retrieve changelog and comments.
+   - Build activity entry:
      ```
-     Wait for it to complete, then read the newly written `logs/YYYY-MM-DD.json`.
-     If the script fails, report the error and stop.
+     {
+       key, summary, url, status,
+       status_changes: [{from, to, at}, ...]      # filtered: created >= SINCE
+       comments_by_me: [{at, body}, ...]
+       comments_to_me: [{at, author, body}, ...]
+     }
+     ```
+3. If `jira_account_id` is missing from config, leave comment arrays empty.
 
 ---
 
-## Step 2 — Get last evening message for context
+## Step 4 — Fetch GitHub activity (optional)
 
-1. Read `config/state.json`. Inspect the `last_evening_message` field.
-2. If it contains a `permalink`:
-   - Use MCP `slack_read_thread` with that permalink to retrieve the message text.
-3. If `permalink` is absent or null:
-   - Use MCP `slack_search_public_and_private` with query `from:me in:${STANDUP_PUBLISH_CHANNEL_NAME}` scoped to the last 7 days.
-   - Take the most recent result as the "last standup text".
-4. Store this text as context for the draft (so the new message doesn't repeat the same wording).
+**If a GitHub tool is available** (check by attempting a minimal call — `gh` CLI in
+local Claude Code, or a configured GitHub MCP / cloud connector):
 
----
+For each repo in `gh_repos`:
 
-## Step 3 — Fetch Slack activity since last standup
+1. **PRs authored by me** — search for PRs updated since `SINCE_DATE`.
+   Collect: `{number, title, state, url, merged_at, updated_at, base_branch}`
 
-1. Read the `since` field from the log JSON obtained in Step 1.
-2. Run MCP `slack_search_public_and_private` calls in parallel (use channels from `STANDUP_INPUT_SLACK_CHANNELS` if set):
-   - **Outbound**: query `from:me after:<since>`.
-   - **Inbound DMs**: query `to:me after:<since>` — captures direct messages.
-   - **PR review pings**: scan any GitHub notification channels from config for review-request notifications mentioning my handle.
-3. Collect all returned messages as supplemental activity evidence.
+2. **Commits by me** — list commits in repo since `SINCE` for authenticated user.
+   Collect: `{sha, message, url, date, branch}`
 
----
+3. **PR review requests** — PRs where I'm requested reviewer, updated since `SINCE`.
+   Collect: `{number, title, url, author}`
 
-## Step 3.5 — Aggregate evidence via subagent
+Build GitHub events:
+```json
+{
+  "prs": [...],
+  "commits": [...],
+  "review_requests": [...]
+}
+```
 
-1. Invoke the `standup-aggregate` skill as a subagent (via `Agent` tool, `subagent_type: general-purpose`), passing:
-   - The full log JSON from Step 1.
-   - The combined Slack dump from Step 3 (outbound + inbound DMs + PR pings).
-2. The subagent returns a set of **activity cards** — one per Jira key seen in any source, plus a "no-key" tail for meetings and code reviews.
-3. Store the cards as the primary input for Step 4 (drafting).
+**If no GitHub tool is available:**
+
+Set `github_activity: null`. Do not fail — continue.
 
 ---
 
-## Step 4 — Draft the message
+## Step 5 — Fetch Calendar events (optional)
 
-1. Combine sources:
-   - Activity cards from Step 3.5 (primary)
-   - Last evening message text (Step 2) — as style/context reference
-2. Invoke the `standup-format` skill to format the final draft.
-3. Save the draft to `drafts/YYYY-MM-DD.md` (using today's date).
+**If Google Calendar MCP is available:**
+
+Call `list_events` (or equivalent tool):
+- Calendar: `calendar_id` from config (default: `primary`)
+- Time range: from `SINCE` to `now + 1 day`
+- Filter: only events where user is attendee OR organizer
+
+Collect events:
+```json
+[
+  {
+    "summary": "Sprint planning",
+    "start": "2026-05-22T10:00:00",
+    "end": "2026-05-22T11:00:00",
+    "status": "accepted"
+  }
+]
+```
+
+Exclude declined events.
+
+**If Google Calendar MCP is NOT available:**
+
+Set `calendar_events: []`. Do not fail.
 
 ---
 
-## Step 4.5 — Validate formatting
+## Step 5.5 — Fetch Confluence activity (optional)
 
-Before saving the draft, verify all five rules. If any check fails, invoke `standup-format` once more with an explicit correction prompt, then re-check:
+Skip this step unless `confluence.enabled` is `true` in config.
 
-1. No single-asterisk date headers (`*DD.MM*`) — dates must use `**DD.MM**` (double asterisk). Single asterisk renders as italic in this Slack workspace.
+**If enabled AND a Confluence tool is available** (Atlassian/Rovo connector for Cloud
+Confluence, or a separately configured Confluence MCP for self-hosted):
+
+Fetch pages and comments the user created or edited since `SINCE`. Use whatever
+Confluence tool is present — do not hardcode a specific server or URL. Typical query:
+pages/blog posts where contributor = current user, updated in the `SINCE` window.
+
+Collect:
+```json
+[
+  {
+    "title": "Page title",
+    "url": "https://...",
+    "space": "SPACE",
+    "action": "edited",
+    "at": "ISO-timestamp"
+  }
+]
+```
+
+**If disabled or no Confluence tool is available:**
+
+Set `confluence_activity: []`. Skip silently.
+
+---
+
+## Step 6 — Compose virtual log
+
+Build in memory — do **not** write to disk:
+
+```json
+{
+  "collected_at": "<now-iso>",
+  "since": "<SINCE>",
+  "sources": {
+    "jira": {"events": [...]},
+    "github": {"events": [...], "skipped": false},
+    "confluence": {"events": [...], "skipped": false},
+    "calendar": {"events": [...]}
+  }
+}
+```
+
+---
+
+## Step 7 — Get last evening message for context
+
+Use `LAST_STANDUP_TEXT` from Step 1 if available. If not found in Step 1, run one
+more `slack_search_public_and_private` with `from:me in:{publish_channel_name}` scoped
+to last 14 days and take the most recent result. Store as context for the draft.
+
+---
+
+## Step 8 — Fetch Slack activity since last standup
+
+Run MCP `slack_search_public_and_private` calls (can run in parallel):
+
+- **Outbound**: `from:me after:{SINCE}`
+- **Inbound DMs**: `to:me after:{SINCE}`
+
+**Channel scope:**
+- If `input_slack_channels` is set and non-empty in config: add per-channel filters.
+- Otherwise: use global search (no channel restriction) — this is the default.
+
+Collect all returned messages as supplemental activity evidence.
+
+---
+
+## Step 8.5 — Load style overlay
+
+Look for personal style overlay in this order:
+1. **Project knowledge file** — scan context for a file with standup style guide
+   (typically named `style.md` or containing "Standup style", "phrasing patterns",
+   "language:" markers).
+2. **Filesystem** (Claude Code only) — read `config/style.md` from the current workspace
+   via the Read tool, if it exists.
+3. If neither found — proceed with universal defaults only.
+
+Store as `STYLE_OVERLAY` string (raw markdown content).
+
+---
+
+## Step 8.6 — Aggregate evidence via subagent
+
+Invoke the `standup-aggregate` skill as a subagent (via `Agent` tool,
+`subagent_type: general-purpose`), passing:
+- The virtual log JSON from Step 6.
+- The combined Slack dump from Step 8.
+- `style_overlay: <STYLE_OVERLAY content>` (or omit if not found).
+- Calendar events from Step 5 as additional input for the `meetings_from_calendar` field.
+- Confluence activity from Step 5.5 as additional input (if any).
+
+The subagent returns **activity cards** — one per Jira key, plus a "no-key" tail.
+Store the cards as primary input for Step 9.
+
+---
+
+## Step 9 — Draft the message
+
+Invoke the `standup-format` skill, passing:
+- Activity cards from Step 8.6 (primary).
+- Last evening message text (Step 7) as style/context reference.
+- `style_overlay: <STYLE_OVERLAY content>` (or omit if not found).
+- Note: `local_git_activity` is null — infer commit activity from GitHub source only.
+
+---
+
+## Step 9.5 — Validate formatting
+
+Before showing the draft, verify all five rules. If any check fails, invoke
+`standup-format` once more with an explicit correction prompt, then re-check:
+
+1. Date headers use `**DD.MM**` (two asterisks). No other bold in the body.
 2. No `__` anywhere in the body.
-3. Exactly one blank line between the `**DD.MM**` header for yesterday and the `**DD.MM**` header for today/tomorrow.
-4. Every bullet line starts with `• ` (U+2022 + space), not `- ` or `* `.
-5. Every Jira reference uses Slack link format `<URL|KEY>`, not a bare URL.
+3. Exactly one blank line between the `**DD.MM**` header for yesterday and the
+   `**DD.MM**` header for today/tomorrow.
+4. Every bullet line starts with `• ` (U+2022 + space).
+5. Every Jira reference uses `<URL|KEY>` form, not a bare URL.
 
 ---
 
-## Step 5 — Self-DM preview
+## Step 10 — Self-DM preview
 
-1. Read `my_user_id` from `config/state.json` (or `STANDUP_SLACK_USER_ID` from config).
-   - If null or empty:
-     - Use MCP `slack_search_users` with email `${STANDUP_EMAIL}` to find the user ID.
-     - Show the result to the user and ask them to confirm it is correct.
-     - On confirmation, write the ID to `config/state.json` under `my_user_id`.
-2. Send the draft via MCP `slack_send_message` to `channel = my_user_id` (this creates a self-DM).
+1. Get `my_user_id`:
+   - From `slack_user_id` in config.
+   - If missing: call `slack_search_users` with `email` from config.
+     Show result to user, ask to confirm.
+2. Send draft via MCP `slack_send_message` to `channel = my_user_id`.
 3. Show the user the permalink of the sent DM.
 
 ---
 
-## Step 6 — Ask what to do next
+## Step 11 — Ask what to do next
 
 Present exactly these four options and wait for the user's choice:
 
-1. **Опубликовать в ${STANDUP_PUBLISH_CHANNEL_NAME}** — send via MCP `slack_send_message` to channel `${STANDUP_PUBLISH_CHANNEL_ID}` → capture the returned permalink → proceed to Step 7.
-2. **Редактировать** — open `drafts/YYYY-MM-DD.md` for editing, then repeat Step 5 with the revised text.
-3. **Отправлю вручную** — the user sends from the DM or draft themselves, then returns with the permalink → proceed to Step 7.
-4. **Не сегодня** — stop. The draft stays in `drafts/`. Do not archive.
-
----
-
-## Step 7 — Archive after confirmed publication
-
-1. Scan the first ~6 non-empty lines of the message body for the first `DD.MM`
-   token (regex `^\*?(\d{1,2})\.(\d{1,2})(?:\*?[\s,]|\*?$)`). Use that date
-   (with the current year) as the archive date. If no `DD.MM` is found, fall
-   back to today's date.
-2. Check whether `archive/{archive-date}.md` already exists. If it does, **do not overwrite it** — tell the user and stop.
-3. Write `archive/{archive-date}.md` with this exact YAML frontmatter followed by the message body:
-
-```yaml
----
-date: YYYY-MM-DD
-sprint: "Sprint Name"
-slack_permalink: https://...
-status: published
-published_at: ISO-timestamp
----
-```
-
-4. Update `config/state.json` field `last_evening_message`:
-
-```json
-{
-  "ts": "slack_message_ts",
-  "permalink": "https://...",
-  "archived_at": "ISO-timestamp",
-  "sprint_name": "Sprint Name"
-}
-```
-
-Use the `current_sprint` value from `config/state.json` for `sprint_name` / `Sprint Name` if set; otherwise leave as an empty string.
+1. **Опубликовать в {publish_channel_name}** — send via MCP `slack_send_message`
+   to channel `{publish_channel_id}`.
+2. **Редактировать** — ask the user to type their edits in the chat.
+   Apply edits to the draft, re-run Step 9.5 validation, repeat Step 10 preview.
+   Do **not** try to open a file — editing happens in the conversation.
+3. **Отправлю вручную** — user sends manually. Done.
+4. **Не сегодня** — stop. Show the draft text in the chat so the user can copy it.
 
 ---
 
 ## Do NOT
 
-- Do NOT publish to the standup channel without explicit user confirmation (option 1 in Step 6).
-- Do NOT edit any JSON files in `logs/`.
-- Do NOT create a duplicate archive entry if `archive/YYYY-MM-DD.md` already exists for today.
+- Do NOT publish to the standup channel without explicit user confirmation (option 1 in Step 11).
+- Do NOT run any shell scripts or bash commands.
+- Do NOT write any files — no `logs/`, no `drafts/`, no `archive/`, no `state.json`.
+- Do NOT fail if GitHub MCP, Google Calendar MCP, or Confluence is unavailable — skip gracefully.

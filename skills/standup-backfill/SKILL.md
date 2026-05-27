@@ -1,36 +1,39 @@
 ---
 name: standup-backfill
-description: Backfill historical standup messages from Slack publish channel into the local archive. Triggered by /standup-archive, "выгрузи историю", "выгрузи стендапы из Slack".
+description: Pull all standup messages from the Slack publish channel and save them as local archive files. Run periodically (e.g. weekly) to keep a searchable offline archive. Triggered by /standup-archive, "выгрузи историю", "выгрузи стендапы из Slack".
 ---
 
 # Standup Backfill
 
-Pull all historical evening standup messages from the configured Slack publish channel
-and save them as local archive files.
+Pull standup messages from the configured Slack publish channel and save them as
+local archive files. Run from Claude Code (requires filesystem write access).
+
+Use this periodically — weekly or on demand — to keep a searchable offline archive
+in `archive/`. Each run skips files that already exist, so it is safe to re-run.
 
 ---
 
 ## Step 0 — Load config
 
-Read config values by running (use `bash -c` explicitly — config.sh uses bash-specific syntax):
+Read `config/local.json` from the current workspace via the Read tool.
 
-```bash
-bash -c 'source "${CLAUDE_PLUGIN_ROOT}/scripts/lib/config.sh" && echo "PUBLISH_CHANNEL_ID=$STANDUP_PUBLISH_CHANNEL_ID" && echo "PUBLISH_CHANNEL_NAME=$STANDUP_PUBLISH_CHANNEL_NAME" && echo "WORKSPACE_DOMAIN=$STANDUP_SLACK_WORKSPACE_DOMAIN"'
-```
+Required fields:
+- `team.publish_channel_id` → `PUBLISH_CHANNEL_ID`
+- `team.publish_channel_name` → `PUBLISH_CHANNEL_NAME`
+- `team.slack_workspace_domain` → `WORKSPACE_DOMAIN`
+- `user.slack_user_id` → `MY_USER_ID`
 
-Required: `STANDUP_PUBLISH_CHANNEL_ID`, `STANDUP_PUBLISH_CHANNEL_NAME`,
-`STANDUP_SLACK_WORKSPACE_DOMAIN`.
+If the file is missing or required fields are absent, stop and tell the user to run
+`/standup-init` to create the data repo config.
 
 ---
 
 ## Step 1 — Validate prerequisites
 
-1. Read `config/state.json`.
-2. Check `my_user_id` (or `STANDUP_SLACK_USER_ID` from config). If both are null or empty:
-   - Tell the user: "my_user_id не задан — сначала запусти /standup, чтобы Claude нашёл и сохранил твой Slack user ID."
+1. Use `MY_USER_ID` from `config/local.json` (Step 0). If absent or empty:
+   - Tell the user: "slack_user_id не задан в config/local.json."
    - **Stop.**
-3. Store the resolved value as `MY_USER_ID` for the steps below.
-4. Note how many files already exist in `archive/` (to report at the end).
+2. Note how many files already exist in `archive/` (to report at the end).
 
 ---
 
@@ -90,10 +93,8 @@ For each collected message, in chronological order (oldest first):
    - Remove the `.` from `ts` to get the raw timestamp (e.g., `1693000000123456`).
    - URL: `https://${STANDUP_SLACK_WORKSPACE_DOMAIN}/archives/${STANDUP_PUBLISH_CHANNEL_ID}/p<ts_without_dot>`
 
-4. **Determine sprint (best effort).**
-   - Check `current_sprint` in `config/state.json`.
-   - If set and the message date falls within the current sprint, use it.
-   - Otherwise leave `sprint` as an empty string `""`.
+4. **Determine sprint.**
+   - Leave `sprint` as an empty string `""`.
 
 5. **Write the archive file** with this exact format:
 
@@ -139,6 +140,5 @@ If the search appears to have cut off before reaching the earliest expected mess
 ## Do NOT
 
 - Do NOT overwrite an existing archive file — use a `-1`, `-2` suffix instead.
-- Do NOT modify `config/state.json` during this backfill (it is a historical import).
 - Do NOT publish or send any messages to Slack.
-- Do NOT edit or delete files in `logs/` or `drafts/`.
+- Do NOT edit or delete any existing files other than creating new `archive/` entries.
