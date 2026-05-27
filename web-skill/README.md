@@ -13,10 +13,14 @@ No shell, no filesystem, no subagents. All data via MCP connectors.
 
 Required once per account — skills need this toggle on.
 
-### 2. Upload the skill
+### 2. Install the skill
 
-`Customize → Skills → + Create skill → Upload a skill` → upload `standup-web.zip`.
+**Muse org members:** go to `Customize → Skills → Organization skills → standup-web → Install`
+(direct install link available from your team — ask in Slack or check the Confluence doc)
 
+Updates are automatic — no reinstall needed when the skill is updated.
+
+**Outside the org / self-hosting:** `Customize → Skills → + Create skill → Upload a skill` → `standup-web.zip`.
 Skill is account-global. Upload once; works in all projects.
 
 ### 3. Create a Claude project and connect integrations

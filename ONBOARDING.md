@@ -93,13 +93,16 @@ Or say: `"собери стендап"` / `"evening standup"`.
 
 One-time per account. Skills require this toggle.
 
-### 2. Upload the skill
+### 2. Install the skill
 
-`Customize → Skills → + Create skill → Upload a skill`
+**If you're in the Muse org:** the skill is shared org-wide.
+Go to `Customize → Skills → Organization skills → standup-web → Install`.
+(Direct install link available from your team — ask in Slack or check the team Confluence doc.)
 
-Upload: [`web-skill/standup-web.zip`](./web-skill/standup-web.zip)
+Updates are automatic — when the skill is updated, you get it without reinstalling.
 
-Account-global — upload once, works in all projects.
+**If you're outside the org (or self-hosting):** upload the ZIP manually.
+`Customize → Skills → + Create skill → Upload a skill` → [`web-skill/standup-web.zip`](./web-skill/standup-web.zip)
 
 ### 3. Create a project and connect integrations
 
