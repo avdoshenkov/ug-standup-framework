@@ -1,6 +1,6 @@
 ---
 name: standup-aggregate
-description: Cross-source aggregator for standup evidence. Takes log JSON + Slack dump, produces per-issue activity cards for the standup-format skill. Called as a subagent from standup-collect Step 3.5.
+description: Cross-source aggregator for standup evidence. Takes log JSON + Slack dump, produces per-issue activity cards for the standup-format skill. Called as a subagent from standup-collect Step 8.6.
 ---
 
 # Standup Aggregate
@@ -76,8 +76,8 @@ per Jira key, then the keyless tail.
 ```
 ## no-key
 - code_reviews: <count of PRs reviewed (not authored), list of themes if clear>
-- meetings: <list of syncs/kick-offs/1-1s found in outbound Slack, or "none">
-- meetings_from_calendar: <list of accepted calendar events, or omit if no calendar data>
+- meetings: <list of notable meetings (kick-offs/1-on-1s/planning/demos/retros) found in outbound Slack — exclude routine recurring calls; "none" if absent>
+- meetings_from_calendar: <list of notable accepted calendar events — exclude routine recurring calls; omit if no calendar data>
 - incidents: <any infra/deploy failures mentioned, or "none">
 - delegated_tasks: <list of tasks delegated to colleagues if applicable, or "none">
 - escalations: <user-initiated investigation threads with ≥3 replies, or "none">
@@ -85,6 +85,8 @@ per Jira key, then the keyless tail.
 
 `meetings_from_calendar` takes priority over `meetings` when both are present — calendar
 events are more reliable than Slack keyword scanning. If both have data, merge unique entries.
+
+**Meeting classification (notable vs routine):** Only include **notable** meetings — kick-off, planning, 1-on-1, interview, demo, design review, code review session, retro. Exclude **routine** recurring calls — daily standup, team sync, soundcheck, weekly recurring. Recurrence ("recurring", "weekly", "ежедневно") is a strong routine signal. If `style.md` defines a `routine_meetings` keyword list, use it to classify; it overrides the defaults above.
 
 ---
 
@@ -123,6 +125,7 @@ Deduplicate. Sprint tasks that appear in no source → omit (not touched today).
   - **Stage wording**: derive from Jira status. If `style.md` provides a
     status → verb mapping, use it. Otherwise use the Jira status label
     directly, translated into the user's language if needed.
+  - Do NOT append the Jira status in parentheses. Status informs verb choice only — never appears in output.
 
 ### 3. Keyless tail
 
@@ -131,8 +134,10 @@ keyword lists for any category, prefer those over the generic patterns listed he
 
 - **code_reviews**: messages containing PR links or approval/LGTM-equivalent words.
   If ≥2, write "several code reviews". Add themes if recognisable.
-- **meetings**: messages that mention sync / kick-off / 1-on-1 / planning /
-  meeting-equivalent words. List each as a short phrase.
+- **meetings**: messages that mention kick-off / 1-on-1 / planning / interview / demo /
+  retro / design review — **notable** meetings only. Exclude routine calls (daily standup,
+  soundcheck, weekly sync). If `style.md` defines `routine_meetings`, apply it. List each
+  as a short phrase.
 - **incidents**: messages that mention deploy failure / incident / infra issue
   equivalents. If found, one-line summary.
 - **delegated_tasks**: outbound messages (public channels, not DMs) mentioning

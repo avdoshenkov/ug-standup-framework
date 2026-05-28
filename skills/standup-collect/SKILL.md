@@ -157,12 +157,14 @@ Set `github_activity: null`. Do not fail — continue.
 
 ## Step 5 — Fetch Calendar events (optional)
 
-**If Google Calendar MCP is available:**
+**Attempt calendar fetch** — Google Calendar tools are often deferred in Claude Code and may not appear in the active tool set on the first check:
 
-Call `list_events` (or equivalent tool):
-- Calendar: `calendar_id` from config (default: `primary`)
-- Time range: from `SINCE` to `now + 1 day`
-- Filter: only events where user is attendee OR organizer
+1. Look for `list_events` or any Google Calendar tool in the active tool set.
+2. If not found: attempt to load it (e.g. via `ToolSearch` with query `"google calendar list_events"` or `"select:mcp__claude_ai_Google_Calendar__list_events"`) and retry once.
+3. Call the tool:
+   - Calendar: `calendar_id` from config (default: `primary`)
+   - Time range: from `SINCE` to `now + 1 day`
+   - Filter: attendee or organizer; exclude declined.
 
 Collect events:
 ```json
@@ -176,9 +178,7 @@ Collect events:
 ]
 ```
 
-Exclude declined events.
-
-**If Google Calendar MCP is NOT available:**
+**Only if the load attempt fails or the tool genuinely does not exist:**
 
 Set `calendar_events: []`. Do not fail.
 
@@ -297,15 +297,16 @@ Invoke the `standup-format` skill, passing:
 
 ## Step 9.5 — Validate formatting
 
-Before showing the draft, verify all five rules. If any check fails, invoke
+Before showing the draft, verify all six rules. If any check fails, invoke
 `standup-format` once more with an explicit correction prompt, then re-check:
 
 1. Date headers use `**DD.MM**` (two asterisks). No other bold in the body.
 2. No `__` anywhere in the body.
 3. Exactly one blank line between the `**DD.MM**` header for yesterday and the
    `**DD.MM**` header for today/tomorrow.
-4. Every bullet line starts with `• ` (U+2022 + space).
+4. Every non-blank, non-header line inside a date block starts with `• ` (U+2022 + space) — no content line may be missing the bullet prefix.
 5. Every Jira reference uses `<URL|KEY>` form, not a bare URL.
+6. No raw Jira status in parentheses anywhere in the body (e.g. `(Ready for QA)`, `(In QA)`, `(In Progress)`).
 
 ---
 

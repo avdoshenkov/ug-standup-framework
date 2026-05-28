@@ -87,7 +87,7 @@ If no activity: `jira_events: []`. Continue.
 
 ## Step 5 — Fetch Calendar events (optional)
 
-**If Google Calendar MCP is available:**
+**Attempt calendar fetch** — if the calendar connector is enabled but `list_events` is not immediately visible in the active tool set, attempt one call before concluding unavailable:
 
 Call `list_events`:
 - Calendar: `calendar_id` from config (default: `primary`)
@@ -96,7 +96,7 @@ Call `list_events`:
 
 Collect: `[{summary, start, end, status}]`
 
-**If unavailable:** `calendar_events: []`. Do not fail.
+**Only if the call genuinely fails or the tool does not exist:** `calendar_events: []`. Do not fail.
 
 ---
 
@@ -155,7 +155,7 @@ Collect all Jira keys from: `jira_events[].key` + Slack outbound + Slack inbound
 ```
 ## no-key
 - code_reviews: <count of PRs reviewed (not authored), or "none">
-- meetings: <from calendar_events first, then Slack keyword scan, or "none">
+- meetings: <notable meetings only — kick-offs, 1-on-1s, planning, demos, retros; from calendar_events first (exclude routine recurring calls), then Slack keyword scan; "none" if absent>
 - incidents: <infra/deploy issues, or "none">
 ```
 
@@ -197,13 +197,14 @@ Build Jira link: `https://{atlassian_domain}/browse/{KEY}`
 
 ## Step 9.5 — Validate formatting
 
-Before showing the draft, verify all five rules. If any fail: self-correct and re-check.
+Before showing the draft, verify all six rules. If any fail: self-correct and re-check.
 
 1. Date headers use `**DD.MM**` (two asterisks). No other bold in the body.
 2. No `__` anywhere.
 3. Exactly one blank line between yesterday and today date headers.
-4. Every bullet starts with `• ` (U+2022 + space).
+4. Every non-blank, non-header line inside a date block starts with `• ` (U+2022 + space) — no content line may be missing the bullet prefix.
 5. Every Jira reference uses `<URL|KEY>` form.
+6. No raw Jira status in parentheses anywhere in the body (e.g. `(Ready for QA)`, `(In QA)`, `(In Progress)`).
 
 ---
 

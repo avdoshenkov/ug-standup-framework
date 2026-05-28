@@ -141,6 +141,7 @@ Two blocks:
 - Take wording from the user's description, not the Jira ticket title.
 - Link format: `https://${STANDUP_ATLASSIAN_DOMAIN}/browse/${STANDUP_JIRA_PROJECT}-XXXXX`
   (resolve from config or context).
+- Do NOT append the Jira status in parentheses (e.g. `(Ready for QA)`, `(In QA)`). Status informs verb choice only — never appears in the message.
 
 ### 4. Slack and DM context
 
